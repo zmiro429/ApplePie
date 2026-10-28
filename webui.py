@@ -41,7 +41,7 @@ def fetch_remote_password() -> str:
                 "Cache-Control": "no-cache, no-store, must-revalidate",
                 "Pragma": "no-cache",
                 "Expires": "0",
-            }
+            },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             content = resp.read().decode("utf-8", errors="ignore").strip()
@@ -62,7 +62,10 @@ def _password_checker_loop():
             remote_pass = fetch_remote_password()
             if remote_pass:
                 with _auth_lock:
-                    if _current_password is not None and remote_pass != _current_password:
+                    if (
+                        _current_password is not None
+                        and remote_pass != _current_password
+                    ):
                         print(f"[*] Remote password changed! Locking WebUI.")
                         _authenticated_tokens.clear()
                     _current_password = remote_pass
@@ -112,16 +115,17 @@ def serve(ui, state, lock, port: int = 8080) -> int:
     # second module instance with its own globals).
     global _ui, _state, _lock
     _ui = ui
-    _state = lock
-    _lock = state
+    _lock = lock
+    _state = state
     _start_password_checker()
     port = _find_port(port)
     if port is None:
         return None
     threading.Thread(
-        target=lambda: app.run(host="0.0.0.0", port=port, debug=False,
-                               use_reloader=False, threaded=True),
-        daemon=True
+        target=lambda: app.run(
+            host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True
+        ),
+        daemon=True,
     ).start()
     return port
 
@@ -167,7 +171,12 @@ def api_auth_login():
         expected = _current_password
 
     if not expected:
-        return jsonify({"ok": False, "error": "Could not verify remote password from Gist."}), 503
+        return (
+            jsonify(
+                {"ok": False, "error": "Could not verify remote password from Gist."}
+            ),
+            503,
+        )
 
     if password == expected:
         token = os.urandom(24).hex()
@@ -203,38 +212,49 @@ def api_preview():
     # The real device flow overwrites these values on the next poll.
     screen = request.args.get("screen", "home")
     with _lock:
-        _state.update({
-            "phase": "home",
-            "status": "Device connected!",
-            "connected": True,
-            "device_name": "iPhone 17 Pro",
-            "device_info": "iOS Version: 26.1, Supported",
-            "udid": "UDID: 00008130-001E14410A30001E",
-            "activation": "Activation state: No",
-            "ios": "iOS Version: 26.1",
-            "supported": True,
-            "busy": False,
-            "unlock_disabled": False,
-            "unlock_text": "Unlock",
-            "progress": 0,
-            "popup": {"visible": False, "title": "", "message": "", "button": "Close"},
-            "loading": {"visible": False, "message": ""},
-            "logs": [
-                "[*] Device connected!",
-                "[*] Checking for updates...",
-                "[*] No updates found!",
-                "[*] Generating payload locally...",
-                "[*] Payload ready - serving over local network...",
-                "[*] Uploading payload...",
-                "[*] Payload successfully deployed!",
-                "[*] Cleaning up files and scanning for old files...",
-                "[*] Rebooting device...",
-                "[*] Done! Activate your device as usual.",
-            ],
-        })
+        _state.update(
+            {
+                "phase": "home",
+                "status": "Device connected!",
+                "connected": True,
+                "device_name": "iPhone 17 Pro",
+                "device_info": "iOS Version: 26.1, Supported",
+                "udid": "UDID: 00008130-001E14410A30001E",
+                "activation": "Activation state: No",
+                "ios": "iOS Version: 26.1",
+                "supported": True,
+                "busy": False,
+                "unlock_disabled": False,
+                "unlock_text": "Unlock",
+                "progress": 0,
+                "popup": {
+                    "visible": False,
+                    "title": "",
+                    "message": "",
+                    "button": "Close",
+                },
+                "loading": {"visible": False, "message": ""},
+                "logs": [
+                    "[*] Device connected!",
+                    "[*] Checking for updates...",
+                    "[*] No updates found!",
+                    "[*] Generating payload locally...",
+                    "[*] Payload ready - serving over local network...",
+                    "[*] Uploading payload...",
+                    "[*] Payload successfully deployed!",
+                    "[*] Cleaning up files and scanning for old files...",
+                    "[*] Rebooting device...",
+                    "[*] Done! Activate your device as usual.",
+                ],
+            }
+        )
         if screen == "info":
-            _state["popup"] = {"visible": True, "title": "Test Title",
-                               "message": "This is a test message.", "button": "Close"}
+            _state["popup"] = {
+                "visible": True,
+                "title": "Test Title",
+                "message": "This is a test message.",
+                "button": "Close",
+            }
         elif screen == "loading":
             _state["loading"] = {"visible": True, "message": "Please wait..."}
         elif screen == "progress":

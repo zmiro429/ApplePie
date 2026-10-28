@@ -44,8 +44,15 @@ class StaticRoutesTest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         body = r.get_data(as_text=True)
         r.close()
-        for marker in ("intro-screen", "home-screen", "popup-overlay",
-                       "loading-overlay", "app.js", "style.css", "banner.png"):
+        for marker in (
+            "intro-screen",
+            "home-screen",
+            "popup-overlay",
+            "loading-overlay",
+            "app.js",
+            "style.css",
+            "banner.png",
+        ):
             self.assertIn(marker, body)
 
     def test_css_js_served(self):
@@ -70,10 +77,24 @@ class StatusAPITest(unittest.TestCase):
         r = self.c.get("/api/status")
         self.assertEqual(r.status_code, 200)
         s = r.get_json()
-        for key in ("phase", "status", "connected", "device_name", "device_info",
-                    "udid", "activation", "ios", "supported", "progress",
-                    "busy", "unlock_disabled", "unlock_text", "logs",
-                    "popup", "loading"):
+        for key in (
+            "phase",
+            "status",
+            "connected",
+            "device_name",
+            "device_info",
+            "udid",
+            "activation",
+            "ios",
+            "supported",
+            "progress",
+            "busy",
+            "unlock_disabled",
+            "unlock_text",
+            "logs",
+            "popup",
+            "loading",
+        ):
             self.assertIn(key, s)
         self.assertIsInstance(s["logs"], list)
         self.assertIsInstance(s["popup"], dict)
@@ -136,7 +157,7 @@ class AuthAPITest(unittest.TestCase):
         # The password currently on Gist is ApplePie2026
         # Test dynamically by testing with the current password
         with webui._auth_lock:
-            pass_val = webui._current_password or "ApplePie2026"
+            pass_val = webui._current_password or "PassedFirstStep"
             webui._current_password = pass_val
 
         r = self.c.post("/api/auth/login", json={"password": pass_val})
@@ -199,6 +220,7 @@ class ActionRoutesTest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.get_json()["ok"])
         import time
+
         deadline = time.time() + 10
         while time.time() < deadline:
             if ap.web_state["busy"]:
@@ -276,8 +298,7 @@ class CheckRequirementsTest(unittest.TestCase):
 
     def test_all_passed_matches_checks(self):
         data = _UI.check_requirements()
-        self.assertEqual(data["all_passed"],
-                         all(c["passed"] for c in data["checks"]))
+        self.assertEqual(data["all_passed"], all(c["passed"] for c in data["checks"]))
 
 
 class IntroRequirementsTest(unittest.TestCase):
@@ -310,8 +331,9 @@ class IntroRequirementsTest(unittest.TestCase):
     def test_firewall_check_reported(self):
         data = _UI.check_intro_requirements()
         names = [c["name"] for c in data["checks"]]
-        self.assertTrue(any("Firewall" in n for n in names),
-                        f"firewall check missing: {names}")
+        self.assertTrue(
+            any("Firewall" in n for n in names), f"firewall check missing: {names}"
+        )
         fw = next(c for c in data["checks"] if "Firewall" in c["name"])
         self.assertIsInstance(fw["passed"], bool)
         self.assertTrue(fw["detail"])
@@ -329,8 +351,7 @@ class IntroRequirementsTest(unittest.TestCase):
 
     def test_all_passed_matches_checks(self):
         data = _UI.check_intro_requirements()
-        self.assertEqual(data["all_passed"],
-                         all(c["passed"] for c in data["checks"]))
+        self.assertEqual(data["all_passed"], all(c["passed"] for c in data["checks"]))
 
 
 class SupportedDevicesTest(unittest.TestCase):
@@ -354,8 +375,8 @@ class SupportedDevicesTest(unittest.TestCase):
     def test_issue_devices_present(self):
         devices = _UI.supported_devices()
         pts = [d["product_type"] for d in devices]
-        self.assertIn("iPhone13,3", pts)   # iPhone 12 Pro (issue #10)
-        self.assertIn("iPhone11,2", pts)   # iPhone XS (issue #7)
+        self.assertIn("iPhone13,3", pts)  # iPhone 12 Pro (issue #10)
+        self.assertIn("iPhone11,2", pts)  # iPhone XS (issue #7)
         d = next(x for x in devices if x["product_type"] == "iPhone13,3")
         # version-specific dir present => only that concrete version is listed
         self.assertEqual(d["versions"], ["17.3.1"])
@@ -365,16 +386,25 @@ class SupportedDevicesTest(unittest.TestCase):
         for d in devices:
             fdir = ap._data(f"Maker/{d['product_type'].replace(',', '-')}")
             specific = sorted(
-                entry for entry in os.listdir(fdir)
+                entry
+                for entry in os.listdir(fdir)
                 if os.path.isdir(os.path.join(fdir, entry))
-                and os.path.exists(os.path.join(fdir, entry, "com.apple.MobileGestalt.plist"))
+                and os.path.exists(
+                    os.path.join(fdir, entry, "com.apple.MobileGestalt.plist")
+                )
             )
             if specific:
-                self.assertEqual(d["versions"], specific,
-                                 f"{d['product_type']} should list its own version dirs")
+                self.assertEqual(
+                    d["versions"],
+                    specific,
+                    f"{d['product_type']} should list its own version dirs",
+                )
             else:
-                self.assertEqual(d["versions"], ["All"],
-                                 f"{d['product_type']} generic-only should report All")
+                self.assertEqual(
+                    d["versions"],
+                    ["All"],
+                    f"{d['product_type']} generic-only should report All",
+                )
 
     def test_fab_present_in_html(self):
         r = self.c.get("/")
@@ -401,7 +431,9 @@ class SupportedDevicesTest(unittest.TestCase):
         self.assertGreater(len(iPads), 0)
         # search matches on name and product_type (JS mirrors this logic)
         needle = "pro"
-        hits = [d for d in devices if "pro" in (d["name"] + " " + d["product_type"]).lower()]
+        hits = [
+            d for d in devices if "pro" in (d["name"] + " " + d["product_type"]).lower()
+        ]
         self.assertGreater(len(hits), 0)
         self.assertEqual(len(iPhones) + len(iPads), len(devices))
 
@@ -486,8 +518,11 @@ class GestaltResolverTest(unittest.TestCase):
                     continue
                 got, ver = self.eng._resolve_gestalt(prd, entry)
                 self.assertIsNotNone(got, f"{prd}/{entry} did not resolve")
-                self.assertEqual(os.path.normcase(got), os.path.normcase(want),
-                                 f"{prd}/{entry} did not resolve to its own dump")
+                self.assertEqual(
+                    os.path.normcase(got),
+                    os.path.normcase(want),
+                    f"{prd}/{entry} did not resolve to its own dump",
+                )
                 self.assertEqual(ver, entry)
                 checked += 1
         self.assertGreater(checked, 0)
